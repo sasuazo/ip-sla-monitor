@@ -1,0 +1,2 @@
+# IP SLA Monitor Dependencies
+openpyxl>=3.1.0

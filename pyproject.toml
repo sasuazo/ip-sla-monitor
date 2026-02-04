@@ -1,0 +1,48 @@
+[project]
+name = "ip-sla-monitor"
+version = "1.0.0"
+description = "Cisco IP SLA UDP-Jitter measurement ingestion and visualization tool"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+keywords = ["cisco", "ip-sla", "network", "monitoring", "jitter", "voip"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Environment :: MacOS X",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Telecommunications Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Networking :: Monitoring",
+]
+dependencies = [
+    "openpyxl>=3.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[project.scripts]
+ip-sla-monitor = "ip_sla_monitor.main:main"
+
+[project.urls]
+Homepage = "https://github.com/YOUR_USERNAME/ip-sla-monitor"
+Repository = "https://github.com/YOUR_USERNAME/ip-sla-monitor"
+Issues = "https://github.com/YOUR_USERNAME/ip-sla-monitor/issues"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["ip_sla_monitor*"]
