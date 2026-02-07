@@ -1,43 +1,66 @@
 # IP SLA Monitor
 
-A Python tool for ingesting Cisco IP SLA UDP-Jitter measurements and visualizing them in Excel.
+A Python tool for ingesting Cisco IP SLA UDP-Jitter measurements and generating publication-quality charts.
 
 ## Features
 
 - **Parse** raw Cisco `show ip sla statistics aggregated` output
 - **Store** measurements in Excel with automatic deduplication
-- **Generate** charts with predefined favorites:
+- **Auto-cleanup** - input files deleted after successful ingestion
+- **Generate** high-quality matplotlib charts:
   - RTT Average/Max over time
-  - Packet Loss per interval
-  - Jitter over time
+  - Jitter, One-Way Latency & Packet Loss (3-panel)
   - MOS Score over time
-  - RTT Over Threshold
 - **GUI** for easy time range selection and chart generation
+- **CLI** for scripting and automation
 
 ## Installation
 
+### macOS (with Homebrew Python)
+
 ```bash
-# Navigate to parent directory
-cd /path/to/parent
+# Clone or extract the project
+cd ip-sla-monitor
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
 
 # Install dependencies
-pip install -r ip_sla_monitor/requirements.txt
+pip install -r requirements.txt
+```
+
+### Other Systems
+
+```bash
+pip install -r requirements.txt
+```
+
+### As a Package (optional)
+
+```bash
+pip install -e .
 ```
 
 ## Directory Structure
 
 ```
 ip_sla_monitor/
-├── input/                  # Drop raw data files here
-├── Ip_SLA_measurements.xlsx  # Output Excel file (auto-created)
-├── ip_sla_monitor.log      # Log file
-├── config.py               # Configuration settings
-├── parser.py               # Cisco output parser
-├── excel_handler.py        # Excel operations
-├── chart_manager.py        # Chart generation
-├── gui.py                  # Tkinter GUI
-├── main.py                 # CLI entry point
-└── requirements.txt
+├── input/                      # Drop raw data files here (deleted after ingestion)
+├── charts/                     # Generated PNG charts (auto-created)
+├── Ip_SLA_measurements.xlsx    # Output Excel file (auto-created)
+├── ip_sla_monitor.log          # Log file
+├── config.py                   # Configuration settings
+├── parser.py                   # Cisco output parser
+├── excel_handler.py            # Excel operations
+├── plotter.py                  # Matplotlib chart generation
+├── chart_manager.py            # Excel chart generation (legacy)
+├── gui.py                      # Tkinter GUI
+├── main.py                     # CLI entry point
+├── samples/                    # Example data files
+├── pyproject.toml              # Package configuration
+├── requirements.txt            # Dependencies
+└── LICENSE                     # MIT License
 ```
 
 ## Usage
@@ -54,9 +77,25 @@ python -m ip_sla_monitor ingest-all
 python -m ip_sla_monitor ingest /path/to/dataset.txt
 ```
 
+> **Note:** Files are automatically deleted after successful ingestion.
+
 ### 2. Generate Charts
 
-**Using GUI (recommended):**
+**Using CLI (recommended):**
+```bash
+# Generate all PNG charts
+python -m ip_sla_monitor plot
+
+# Generate and display interactively
+python -m ip_sla_monitor plot --show
+
+# Generate for specific date range
+python -m ip_sla_monitor plot --start 2026-01-27 --end 2026-01-28
+```
+
+Charts are saved to the `charts/` folder as PNG files.
+
+**Using GUI:**
 ```bash
 python -m ip_sla_monitor charts
 ```
@@ -65,16 +104,7 @@ The GUI allows you to:
 - See current data range and record count
 - Set custom time ranges with quick presets (24h, 7d, 30d)
 - Select which charts to generate
-- Open the Excel file directly
-
-**Using CLI:**
-```bash
-# Generate all charts for all data
-python -m ip_sla_monitor charts-cli
-
-# Generate charts for specific date range
-python -m ip_sla_monitor charts-cli --start 2026-01-27 --end 2026-01-28
-```
+- Open the charts folder or Excel file directly
 
 ### 3. Check Status
 
@@ -100,23 +130,44 @@ RTT Values:
 ...
 ```
 
-## Output Format
+See `samples/example_dataset.txt` for a complete example.
 
-Excel columns match the provided CSV format:
+## Output
+
+### Excel Data
+
+Excel columns include:
 - StartTime, MinMOS, MaxMOS, MinICPIF, MaxICPIF
 - NumRTT, RTT_Min_ms, RTT_Avg_ms, RTT_Max_ms
 - RTT_Over_Threshold_Count, RTT_Over_Threshold_Pct
-- Jitter metrics, Loss metrics, etc.
+- Jitter metrics (SD/DS Avg/Max)
+- Packet loss metrics (Loss_SD, Loss_DS, Late Arrival, TailDrop)
+- Successes, Failures
+
+### Charts
+
+Generated PNG charts in `charts/` folder:
+- `ip_sla_rtt.png` - RTT Average and Maximum over time
+- `ip_sla_jitter_latency_loss.png` - 3-panel: Jitter, Latency, Packet Loss
+- `ip_sla_mos.png` - MOS Score with quality threshold lines
 
 ## Customization
 
 Edit `config.py` to:
-- Change file paths
-- Add/modify chart favorites
+- Change file paths (INPUT_DIR, OUTPUT_FILE)
 - Adjust column definitions
+
+Edit `plotter.py` to:
+- Customize chart colors and styling
+- Add new chart types
 
 ## macOS Notes
 
-- The GUI uses tkinter (included with Python on macOS)
-- Excel files open with the default application (Excel or Numbers)
-- All paths use forward slashes, compatible with macOS/Linux/Windows
+- Requires virtual environment (Homebrew Python restriction)
+- Activate venv each session: `source venv/bin/activate`
+- GUI uses tkinter (included with Python)
+- Charts and Excel open with default applications
+
+## License
+
+MIT License - see LICENSE file

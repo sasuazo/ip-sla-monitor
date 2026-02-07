@@ -37,9 +37,9 @@ dev = [
 ip-sla-monitor = "ip_sla_monitor.main:main"
 
 [project.urls]
-Homepage = "https://github.com/YOUR_USERNAME/ip-sla-monitor"
-Repository = "https://github.com/YOUR_USERNAME/ip-sla-monitor"
-Issues = "https://github.com/YOUR_USERNAME/ip-sla-monitor/issues"
+Homepage = "https://github.com/sasuazo/ip-sla-monitor"
+Repository = "https://github.com/sasuazo/ip-sla-monitor"
+Issues = "https://github.com/sasuazo/ip-sla-monitor/issues"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
