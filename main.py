@@ -22,6 +22,7 @@ from .config import BASE_DIR, INPUT_DIR, OUTPUT_FILE, LOG_FILE, LOG_FORMAT
 from .parser import IPSLAParser
 from .excel_handler import ExcelHandler
 from .chart_manager import ChartManager
+from .plotter import IPSLAPlotter, generate_plots, CHARTS_DIR
 
 # GUI import is optional (requires tkinter)
 try:
@@ -78,6 +79,13 @@ def ingest_file(filepath: Path) -> tuple[int, int]:
     
     handler.save()
     handler.close()
+    
+    # Delete file after successful ingestion
+    try:
+        filepath.unlink()
+        logger.info(f"Deleted ingested file: {filepath}")
+    except Exception as e:
+        logger.warning(f"Could not delete file {filepath}: {e}")
     
     return added, skipped
 
@@ -193,6 +201,39 @@ def generate_all_charts(start_str: str = None, end_str: str = None) -> None:
         print(f"  - {name}")
 
 
+def generate_plot_charts(start_str: str = None, end_str: str = None, show: bool = False) -> None:
+    """
+    Generate matplotlib PNG charts.
+    
+    Args:
+        start_str: Optional start date string (YYYY-MM-DD)
+        end_str: Optional end date string (YYYY-MM-DD)
+        show: Whether to display charts interactively
+    """
+    start_date = None
+    end_date = None
+    
+    if start_str:
+        try:
+            start_date = datetime.strptime(start_str, "%Y-%m-%d")
+        except ValueError:
+            logger.error(f"Invalid start date format: {start_str}")
+            return
+    
+    if end_str:
+        try:
+            end_date = datetime.strptime(end_str, "%Y-%m-%d")
+        except ValueError:
+            logger.error(f"Invalid end date format: {end_str}")
+            return
+    
+    saved = generate_plots(start_date, end_date, show)
+    
+    print(f"Generated {len(saved)} chart(s):")
+    for path in saved:
+        print(f"  - {path}")
+
+
 def main():
     """Main entry point for CLI."""
     parser = argparse.ArgumentParser(
@@ -202,8 +243,9 @@ def main():
 Examples:
   python -m ip_sla_monitor ingest dataset.txt    Ingest a specific file
   python -m ip_sla_monitor ingest-all            Ingest all files in input/
+  python -m ip_sla_monitor plot                  Generate PNG charts (matplotlib)
+  python -m ip_sla_monitor plot --show           Generate and display charts
   python -m ip_sla_monitor charts                Launch chart GUI
-  python -m ip_sla_monitor charts-cli            Generate all charts (CLI)
   python -m ip_sla_monitor status                Show current status
         """
     )
@@ -217,11 +259,17 @@ Examples:
     # Ingest all files
     subparsers.add_parser('ingest-all', help='Ingest all .txt files from input directory')
     
+    # Plot (matplotlib PNG)
+    plot_parser = subparsers.add_parser('plot', help='Generate PNG charts (matplotlib)')
+    plot_parser.add_argument('--start', type=str, help='Start date (YYYY-MM-DD)')
+    plot_parser.add_argument('--end', type=str, help='End date (YYYY-MM-DD)')
+    plot_parser.add_argument('--show', action='store_true', help='Display charts interactively')
+    
     # Chart GUI
     subparsers.add_parser('charts', help='Launch chart generation GUI')
     
-    # Chart CLI
-    charts_cli = subparsers.add_parser('charts-cli', help='Generate all charts from command line')
+    # Chart CLI (Excel charts - legacy)
+    charts_cli = subparsers.add_parser('charts-cli', help='Generate Excel charts (legacy)')
     charts_cli.add_argument('--start', type=str, help='Start date (YYYY-MM-DD)')
     charts_cli.add_argument('--end', type=str, help='End date (YYYY-MM-DD)')
     
@@ -237,13 +285,16 @@ Examples:
     elif args.command == 'ingest-all':
         added, skipped = ingest_all_files()
         print(f"Total: {added} added, {skipped} skipped (duplicates)")
+    
+    elif args.command == 'plot':
+        generate_plot_charts(args.start, args.end, args.show)
         
     elif args.command == 'charts':
         if GUI_AVAILABLE:
             show_chart_gui()
         else:
             print("GUI not available (tkinter not installed).")
-            print("Use 'charts-cli' for command-line chart generation.")
+            print("Use 'plot' for matplotlib chart generation.")
         
     elif args.command == 'charts-cli':
         generate_all_charts(args.start, args.end)

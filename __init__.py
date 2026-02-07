@@ -23,6 +23,7 @@ __author__ = "IP SLA Monitor"
 from .parser import IPSLAParser, IPSLARecord
 from .excel_handler import ExcelHandler
 from .chart_manager import ChartManager
+from .plotter import IPSLAPlotter, generate_plots
 from .config import INPUT_DIR, OUTPUT_FILE, CHART_FAVORITES
 
 __all__ = [
@@ -30,6 +31,8 @@ __all__ = [
     'IPSLARecord', 
     'ExcelHandler',
     'ChartManager',
+    'IPSLAPlotter',
+    'generate_plots',
     'INPUT_DIR',
     'OUTPUT_FILE',
     'CHART_FAVORITES',

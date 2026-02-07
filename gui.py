@@ -11,9 +11,9 @@ from datetime import datetime, timedelta
 from typing import Optional, Callable
 import logging
 
-from .config import OUTPUT_FILE, CHART_FAVORITES
+from .config import OUTPUT_FILE
 from .excel_handler import ExcelHandler
-from .chart_manager import ChartManager
+from .plotter import IPSLAPlotter, CHARTS_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -136,12 +136,19 @@ class ChartGeneratorGUI:
         chart_frame = ttk.LabelFrame(main_frame, text="Select Charts", padding="5")
         chart_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
-        # Checkboxes for each favorite
+        # Checkboxes for matplotlib charts
         self.chart_vars = {}
-        for name, fav in CHART_FAVORITES.items():
+        
+        chart_options = [
+            ("RTT_Avg_Max", "RTT Average/Max Over Time"),
+            ("Jitter_Latency_Loss", "Jitter, Latency & Packet Loss"),
+            ("MOS_Score", "MOS Score Over Time"),
+        ]
+        
+        for name, title in chart_options:
             var = tk.BooleanVar(value=True)
             self.chart_vars[name] = var
-            cb = ttk.Checkbutton(chart_frame, text=fav["title"], variable=var)
+            cb = ttk.Checkbutton(chart_frame, text=title, variable=var)
             cb.pack(anchor=tk.W, pady=1)
         
         # Select all/none buttons
@@ -155,7 +162,8 @@ class ChartGeneratorGUI:
         button_frame.pack(fill=tk.X)
         
         ttk.Button(button_frame, text="Generate Charts", command=self._generate_charts).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Open Excel File", command=self._open_excel).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Open Charts Folder", command=lambda: self._open_folder(CHARTS_DIR)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Open Excel", command=self._open_excel).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Close", command=self.root.quit).pack(side=tk.RIGHT, padx=5)
     
     def _load_data_info(self) -> None:
@@ -215,7 +223,7 @@ class ChartGeneratorGUI:
             var.set(False)
     
     def _generate_charts(self) -> None:
-        """Generate selected charts."""
+        """Generate selected charts using matplotlib."""
         # Get selected charts
         selected = [name for name, var in self.chart_vars.items() if var.get()]
         
@@ -228,31 +236,56 @@ class ChartGeneratorGUI:
         end_date = self.end_entry.get_datetime()
         
         try:
-            handler = ExcelHandler()
-            handler.open_or_create()
-            
-            chart_mgr = ChartManager(handler.workbook)
-            
+            plotter = IPSLAPlotter()
             created = []
-            for chart_name in selected:
-                sheet = chart_mgr.create_favorite_chart(chart_name, start_date, end_date)
-                if sheet:
-                    created.append(sheet)
             
-            handler.save()
-            handler.close()
+            # Map checkbox names to plotter methods
+            if "RTT_Avg_Max" in selected:
+                path = plotter.plot_rtt(start_date, end_date)
+                if path:
+                    created.append(path)
+            
+            if "Jitter_Latency_Loss" in selected:
+                path = plotter.plot_jitter_latency_loss(start_date, end_date)
+                if path:
+                    created.append(path)
+            
+            if "MOS_Score" in selected:
+                path = plotter.plot_mos_score(start_date, end_date)
+                if path:
+                    created.append(path)
             
             if created:
                 messagebox.showinfo(
                     "Success",
-                    f"Created {len(created)} chart(s):\n" + "\n".join(f"• {s}" for s in created)
+                    f"Created {len(created)} chart(s) in:\n{CHARTS_DIR}\n\n" + 
+                    "\n".join(f"• {p.name}" for p in created)
                 )
+                # Open charts folder
+                self._open_folder(CHARTS_DIR)
             else:
                 messagebox.showwarning("No Charts", "No charts were created. Check data range.")
                 
         except Exception as e:
             logger.error(f"Error generating charts: {e}")
             messagebox.showerror("Error", f"Failed to generate charts:\n{e}")
+    
+    def _open_folder(self, folder_path) -> None:
+        """Open a folder in the file browser."""
+        import subprocess
+        import sys
+        
+        folder_path.mkdir(exist_ok=True)
+        
+        try:
+            if sys.platform == 'darwin':  # macOS
+                subprocess.run(['open', str(folder_path)])
+            elif sys.platform == 'win32':  # Windows
+                subprocess.run(['explorer', str(folder_path)])
+            else:  # Linux
+                subprocess.run(['xdg-open', str(folder_path)])
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not open folder:\n{e}")
     
     def _open_excel(self) -> None:
         """Open the Excel file in default application."""
